@@ -10,6 +10,7 @@ import { useLang } from "../lib/i18n";
 const navHrefs = [
   { href: "/",       key: "home"   },
   { href: "/browse", key: "browse" },
+  { href: "/prompts", key: "prompts" },
   { href: "/profiles", key: "profiles" },
   { href: "/submit", key: "submit" },
 ];

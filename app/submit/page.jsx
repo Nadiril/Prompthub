@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { categories } from "../../data/prompts";
 import { useLang } from "../../lib/i18n";
 import { fadeUp, staggerContainer, scaleIn, pageTransition } from "../../components/AnimationVariants";
+import { supabase } from "../../lib/supabase";
 
 const categoryOptions = categories.filter((c) => c !== "All");
 
@@ -21,6 +22,8 @@ export default function SubmitPage() {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [dbError, setDbError] = useState(null);
   const { t } = useLang();
   const s = t.submit;
 
@@ -40,19 +43,40 @@ export default function SubmitPage() {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) setErrors((prev) => ({ ...prev, [name]: undefined }));
+    if (dbError) setDbError(null);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const e2 = validate();
     if (Object.keys(e2).length > 0) { setErrors(e2); return; }
-    setSubmitted(true);
+    setSubmitting(true);
+    setDbError(null);
+    const { error: insertError } = await supabase
+      .from("prompts")
+      .insert({
+        title: form.title,
+        description: form.description,
+        content: form.content,
+        ai_tool: form.category,
+        tags: form.tags ? form.tags.split(",").map((t) => t.trim()) : [],
+      })
+      .select()
+      .single();
+    setSubmitting(false);
+    if (insertError) {
+      setDbError(insertError.message);
+      console.error("Insert error:", insertError);
+    } else {
+      setSubmitted(true);
+    }
   };
 
   const handleReset = () => {
     setForm(initialForm);
     setErrors({});
     setSubmitted(false);
+    setDbError(null);
   };
 
   return (
@@ -142,6 +166,16 @@ export default function SubmitPage() {
             </div>
 
             <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+              {dbError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300"
+                >
+                  <strong>Database error:</strong> {dbError}
+                </motion.div>
+              )}
+
               <motion.form
                 variants={scaleIn}
                 initial="hidden"
@@ -262,11 +296,12 @@ export default function SubmitPage() {
                   </motion.button>
                   <motion.button
                     type="submit"
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
-                    className="rounded-xl bg-violet-600 px-8 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700"
+                    disabled={submitting}
+                    whileHover={{ scale: submitting ? 1 : 1.03 }}
+                    whileTap={{ scale: submitting ? 1 : 0.97 }}
+                    className="rounded-xl bg-violet-600 px-8 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 disabled:opacity-50"
                   >
-                    {s.submitBtn}
+                    {submitting ? "Submitting..." : s.submitBtn}
                   </motion.button>
                 </motion.div>
               </motion.form>
