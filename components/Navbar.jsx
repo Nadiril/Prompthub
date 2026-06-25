@@ -6,13 +6,13 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LangToggle from "./LangToggle";
 import { useLang } from "../lib/i18n";
+import { useAuth } from "../lib/auth-context";
 
 const navHrefs = [
   { href: "/",       key: "home"   },
   { href: "/browse", key: "browse" },
   { href: "/prompts", key: "prompts" },
   { href: "/profiles", key: "profiles" },
-  { href: "/submit", key: "submit" },
 ];
 
 const mobileMenuVariants = {
@@ -42,6 +42,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const { t } = useLang();
+  const { user, loading, signOut } = useAuth();
 
   const navLinks = navHrefs.map(({ href, key }) => ({
     href,
@@ -92,18 +93,29 @@ export default function Navbar() {
           {/* Language toggle */}
           <LangToggle />
 
-          <motion.div
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
-            className="hidden md:block"
-          >
-            <Link
-              href="/submit"
-              className="rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-900/40 transition hover:bg-violet-700"
+          {!loading && user && (
+            <div className="hidden items-center gap-2 md:flex">
+              <span className="text-sm text-zinc-400">{user.email}</span>
+              <motion.button
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => signOut()}
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-white/10"
+              >
+                {t.nav.logout}
+              </motion.button>
+            </div>
+          )}
+
+          {!loading && !user && (
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              className="hidden md:block rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-900/40 transition hover:bg-violet-700"
             >
-              {t.nav.submitPrompt}
-            </Link>
-          </motion.div>
+              <Link href="/login">{t.nav.login}</Link>
+            </motion.button>
+          )}
 
           {/* Hamburger */}
           <motion.button
@@ -188,20 +200,40 @@ export default function Navbar() {
                   </motion.div>
                 );
               })}
-              <motion.div
-                custom={navLinks.length}
-                variants={mobileLinkVariants}
-                initial="hidden"
-                animate="visible"
-              >
-                <Link
-                  href="/submit"
-                  onClick={() => setMenuOpen(false)}
-                  className="mt-2 block rounded-lg bg-violet-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-violet-700"
+              {!loading && user && (
+                <motion.div
+                  custom={navLinks.length}
+                  variants={mobileLinkVariants}
+                  initial="hidden"
+                  animate="visible"
                 >
-                  {t.nav.submitPrompt}
-                </Link>
-              </motion.div>
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      signOut();
+                    }}
+                    className="mt-2 block rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-zinc-300 hover:bg-white/10"
+                  >
+                    {t.nav.logout} ({user.email})
+                  </button>
+                </motion.div>
+              )}
+              {!loading && !user && (
+                <motion.div
+                  custom={navLinks.length}
+                  variants={mobileLinkVariants}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  <Link
+                    href="/login"
+                    onClick={() => setMenuOpen(false)}
+                    className="mt-2 block rounded-lg bg-violet-600 px-4 py-2.5 text-center text-sm font-semibold text-white transition hover:bg-violet-700"
+                  >
+                    {t.nav.login}
+                  </Link>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         )}
