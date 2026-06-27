@@ -233,7 +233,7 @@ export default function HomePage() {
               {/* Image frame */}
               <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/60">
                 <Image
-                  src="/Hero.png"
+                  src="/Hero%20Section.webp"
                   alt="PromptHub dashboard preview"
                   width={720}
                   height={500}

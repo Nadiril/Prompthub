@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import LangToggle from "./LangToggle";
 import { useLang } from "../lib/i18n";
 import { useAuth } from "../lib/auth-context";
 
 const navHrefs = [
-  { href: "/",       key: "home"   },
+  { href: "/", key: "home" },
   { href: "/browse", key: "browse" },
   { href: "/prompts", key: "prompts" },
   { href: "/profiles", key: "profiles" },
@@ -41,8 +41,20 @@ const mobileLinkVariants = {
 export default function Navbar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const { t } = useLang();
   const { user, loading, signOut } = useAuth();
+
+  useEffect(() => {
+    function handleClick(e) {
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
   const navLinks = navHrefs.map(({ href, key }) => ({
     href,
@@ -55,11 +67,9 @@ export default function Navbar() {
 
         {/* Logo */}
         <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97 }} transition={{ type: "spring", stiffness: 400, damping: 15 }}>
-          <Link href="/" className="flex items-center gap-2.5 text-xl font-bold text-white">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-xs font-bold text-white shadow-lg shadow-violet-900/50 tracking-tight">
-              &gt;_
-            </span>
-            Prompt<span className="text-violet-400">Hub</span>
+          <Link href="/" className="flex items-center gap-2.5">
+            <img src="/logo_prompthub.svg" alt="PromptHub" className="h-12 w-auto" />
+            <span className="text-xl font-bold text-white">Prompt<span className="text-violet-400">Hub</span></span>
           </Link>
         </motion.div>
 
@@ -71,9 +81,8 @@ export default function Navbar() {
               <Link
                 key={href}
                 href={href}
-                className={`relative rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  isActive ? "text-white" : "text-zinc-400 hover:text-zinc-100"
-                }`}
+                className={`relative rounded-lg px-4 py-2 text-sm font-medium transition-colors ${isActive ? "text-white" : "text-zinc-400 hover:text-zinc-100"
+                  }`}
               >
                 {isActive && (
                   <motion.span
@@ -94,16 +103,76 @@ export default function Navbar() {
           <LangToggle />
 
           {!loading && user && (
-            <div className="hidden items-center gap-2 md:flex">
-              <span className="text-sm text-zinc-400">{user.email}</span>
+            <div className="relative hidden md:block" ref={userMenuRef}>
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => signOut()}
-                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm font-medium text-zinc-300 hover:bg-white/10"
+                onClick={() => setUserMenuOpen((prev) => !prev)}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
               >
-                {t.nav.logout}
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="max-w-[80px] truncate">{user.email?.split('@')[0]}</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className={`h-3.5 w-3.5 transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
               </motion.button>
+
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: "easeOut" }}
+                    className="absolute right-0 mt-1.5 w-56 rounded-lg border border-white/10 bg-[#12121e] shadow-xl shadow-black/40 overflow-hidden"
+                  >
+                    <div className="border-b border-white/5 px-3 py-2.5 text-xs text-zinc-500 truncate">
+                      {user.email}
+                    </div>
+
+                    <Link
+                      href="/profile"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      {t.nav.myProfile}
+                    </Link>
+
+                    <Link
+                      href="/settings"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2 text-sm text-zinc-400 hover:bg-white/5 hover:text-zinc-200 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      {t.nav.settings}
+                    </Link>
+
+                    <button
+                      onClick={() => { setUserMenuOpen(false); signOut(); }}
+                      className="flex w-full items-center gap-2 border-t border-white/5 px-3 py-2 text-sm text-zinc-400 hover:bg-white/5 hover:text-red-400 transition-colors"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      {t.nav.logout}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )}
 
@@ -189,11 +258,10 @@ export default function Navbar() {
                     <Link
                       href={href}
                       onClick={() => setMenuOpen(false)}
-                      className={`block rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${
-                        isActive
-                          ? "border border-violet-500/20 bg-violet-500/10 text-white"
-                          : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
-                      }`}
+                      className={`block rounded-lg px-4 py-2.5 text-sm font-medium transition-colors ${isActive
+                        ? "border border-violet-500/20 bg-violet-500/10 text-white"
+                        : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+                        }`}
                     >
                       {label}
                     </Link>
@@ -214,7 +282,7 @@ export default function Navbar() {
                     }}
                     className="mt-2 block rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-center text-sm font-medium text-zinc-300 hover:bg-white/10"
                   >
-                    {t.nav.logout} ({user.email})
+                    {t.nav.logout}
                   </button>
                 </motion.div>
               )}
